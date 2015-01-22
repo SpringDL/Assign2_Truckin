@@ -9,7 +9,9 @@ var cameraTarget, camTargetBall;
 
 var truck;
 var wheelFL, wheelFR, wheelBL, wheelBR, frontAxel, backAxel;
-var truckbody;
+var truckBase, truckFront, truckMid, truckBody;
+
+var spinDisplay = false;
 
 //Initialize
 function init() {
@@ -39,7 +41,9 @@ function createGeometry() {
 
     frontAxel = new THREE.Object3D();
     backAxel = new THREE.Object3D();
+    truckBody = new THREE.Object3D();
 
+    //#region Wheels
     //Wheel
     var wheelGeometry = new THREE.CylinderGeometry(5, 5, 2, 6);
     var wheelMaterial = new THREE.MeshLambertMaterial({ color: 0xFF9933 });
@@ -71,26 +75,63 @@ function createGeometry() {
     backAxel.add(wheelBR);
     backAxel.position.set(20, -5, 0);
     scene.add(backAxel);
+    //#endregion
 
+    truck.add(frontAxel);
+    truck.add(backAxel);
 
-
-    //Truck Body
-    var truckBodyGeometry = new THREE.BoxGeometry(70, 10, 20);
-    var truckBodyMaterial = new THREE.MeshLambertMaterial({ color: 0x9966FF });
+    //#region TruckBody
+    //Truck Base
+    var truckBaseGeometry = new THREE.BoxGeometry(70, 10, 20);
+    var truckBaseMaterial = new THREE.MeshLambertMaterial({ color: 0x9966FF });
     //
-    truckbody = new THREE.Mesh(truckBodyGeometry, truckBodyMaterial);
-    truckbody.position.set(5, 0, 0);
-    scene.add(truckbody);
-
-
+    truckBase = new THREE.Mesh(truckBaseGeometry, truckBaseMaterial);
+    truckBase.position.set(5, 0, 0);
+    scene.add(truckBase);
 
     //
+    var headLight = new THREE.PointLight(0xff0000, 5, 20);
+    headLight.position.set(-40, 0, 0);
+    scene.add(headLight);
+    truckBase.add(headLight);
+
+
+
+    //Front Part
+    var truckFrontGeometry = new THREE.CylinderGeometry(10, 10, 19.999, 3);
+    var truckFrontMaterial = new THREE.MeshLambertMaterial({ color: 0x9966FF });
+    //
+    truckFront = new THREE.Mesh(truckFrontGeometry, truckFrontMaterial);
+    truckFront.rotation.set(90 * Math.PI / 180, 30 * Math.PI / 180, 0);
+    truckFront.position.set(-20, 5, 0);
+    scene.add(truckFront);
+
+    
+
+    //Middle
+    var truckMidGeometry = new THREE.BoxGeometry(20, 10, 19.999);
+    var truckMidMaterial = new THREE.MeshLambertMaterial({ color: 0x9966FF });
+    //
+    truckMid = new THREE.Mesh(truckMidGeometry, truckMidMaterial);
+    truckMid.position.set(-5, 9, 0);
+    scene.add(truckMid);
+    //
+    truckBody.add(truckBase);
+    truckBody.add(truckFront);
+    truckBody.add(truckMid);
+    scene.add(truckBody);
+    //#endregion
+
+    truck.add(truckBody);
+    scene.add(truck);
+
+    //Target for camera
     cameraTarget = new THREE.Object3D();
     cameraTarget.position.x = 0;
     cameraTarget.position.y = 0;
     cameraTarget.position.z = 0;
     scene.add(cameraTarget);
-    //
+    //Physical representation of camera target
     var camTarGeometry = new THREE.SphereGeometry(2, 8, 8);
     var camTarMaterial = new THREE.MeshNormalMaterial({ color: 0x00FF00 });
     camTargetBall = new THREE.Mesh(camTarGeometry, camTarMaterial);
@@ -100,25 +141,27 @@ function createGeometry() {
 
     //Position Camera
     camera.position.x = 0;
-    camera.position.y = 20;
-    camera.position.z = 50;
+    camera.position.y = 30;
+    camera.position.z = 100;
     camera.lookAt(cameraTarget.position);
+    
+    
+    //lights
+    var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(0, 1, 0.5);
+    scene.add(directionalLight);
 
-    //Add Ambient Lighting
-    var ambientLight = new THREE.AmbientLight(0x0c0c0c);
-    scene.add(ambientLight);
-
-    //Add Spotlight for lighting
-    var spotLight = new THREE.SpotLight(0xffffff);
-    spotLight.position.set(0, 500, 0);
-    scene.add(spotLight);
 }
 
 //
 function animate() {
     //
-    frontAxel.rotation.z += 0.03;
-    backAxel.rotation.z += 0.03;
+    frontAxel.rotation.z += 0.01 * controls.wheelSpeed;
+    backAxel.rotation.z += 0.01 * controls.wheelSpeed;
+
+    if (spinDisplay) {
+        truck.rotation.y += 0.01 * controls.rotationSpeed;
+    }  
 
     // render using requestAnimationFrame
     requestAnimationFrame(animate);
@@ -128,21 +171,23 @@ function animate() {
 //
 function initGuiControl() {
     controls = new function () {
-        this.rotationSpeed = 0.25;
-
+        this.wheelSpeed = 5;
+        
         //
-        this.moonRotation = function () {
-            if (spinMoons) {
-                spinMoons = false;
-            } else if (!spinMoons) {
-                spinMoons = true;
+        this.rotateDisplay = function () {
+            if (spinDisplay) {
+                spinDisplay = false;
+            } else if (!spinDisplay) {
+                spinDisplay = true;
             }
         };
+        this.rotationSpeed = 1;
     }
 
     gui = new dat.GUI();
-    gui.add(controls, 'rotationSpeed', -50.0, 50.0, 1);
-    gui.add(controls, 'moonRotation');
+    gui.add(controls, 'wheelSpeed', -10, 10, 1);
+    gui.add(controls, 'rotateDisplay');
+    gui.add(controls, 'rotationSpeed', -5, 5, 1);
 }
 
 //
